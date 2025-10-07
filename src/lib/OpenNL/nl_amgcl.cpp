@@ -3,19 +3,19 @@
  * Works both on the CPU and the GPU.
  */
 
-#include <geogram/NL/nl.h>
+#include <OpenNL/nl.h>
 
 extern "C" {
-#include <geogram/NL/nl_amgcl.h>
-#include <geogram/NL/nl_context.h>
-#include <geogram/NL/nl_cuda.h>
+#include <OpenNL/nl_amgcl.h>
+#include <OpenNL/nl_context.h>
+#include <OpenNL/nl_cuda.h>
 }
 
 #include <geogram/basic/logger.h>
 #include <geogram/basic/stopwatch.h>
 #include <geogram/basic/command_line.h>
-#include <geogram/NL/nl.h>
-#include <geogram/NL/nl_matrix.h>
+#include <OpenNL/nl.h>
+#include <OpenNL/nl_matrix.h>
 
 #ifdef NL_WITH_AMGCL
 
@@ -925,7 +925,7 @@ NLboolean nlSolveAMGCL() {
 
 #else
 
-nlBoolean nlSolveAMGCL() {
+NLboolean nlSolveAMGCL() {
     GEO::Logger::out("AMGCL") << "Not supported" << std::endl;
     return NL_FALSE;
 }

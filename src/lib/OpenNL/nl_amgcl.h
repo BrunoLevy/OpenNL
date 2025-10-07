@@ -40,7 +40,7 @@
 #ifndef NL_AMGCL_H
 #define NL_AMGCL_H
 
-#include <geogram/NL/nl.h>
+#include <OpenNL/nl.h>
 
 /**
  * \brief Solves the linear system in current OpenGL context
