@@ -9,12 +9,13 @@ extern "C" {
 #include <OpenNL/nl_amgcl.h>
 #include <OpenNL/nl_context.h>
 #include <OpenNL/nl_cuda.h>
-#include <OpenNL/nl_matrix.h>
 }
 
 #include <geogram/basic/logger.h>
 #include <geogram/basic/stopwatch.h>
 #include <geogram/basic/command_line.h>
+#include <OpenNL/nl.h>
+#include <OpenNL/nl_matrix.h>
 
 #ifdef NL_WITH_AMGCL
 
