@@ -1,4 +1,4 @@
-# OpenLN PSM description file
+# OpenNL PSM description file
 # See tools/extract_psm.sh
 
 HEADERS="nl_linkage.h \

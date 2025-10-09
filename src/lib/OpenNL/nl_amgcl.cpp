@@ -14,7 +14,6 @@ extern "C" {
 
 #include <geogram/basic/logger.h>
 #include <geogram/basic/stopwatch.h>
-#include <geogram/basic/command_line.h>
 
 #ifdef NL_WITH_AMGCL
 
