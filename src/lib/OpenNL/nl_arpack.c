@@ -499,7 +499,7 @@ void nlEigenSolve_ARPACK(void) {
 
     /* Make it visible to the eigen_compare function */
     nlCurrentContext->temp_eigen_value = d;
-    sorted = NL_NEW_ARRAY(int, nev);
+    sorted = NL_NEW_ARRAY(int, (unsigned int)nev);
     for(i=0; i<nev; ++i) {
         sorted[i] = i;
     }
