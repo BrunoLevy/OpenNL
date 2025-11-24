@@ -1659,6 +1659,7 @@ static NLCUDASparseMatrix* CreateCUDASlicesFromCRSMatrixSlices(
     Mcuda->row_offset = row_offset;
     ++master->nb_slices;
 
+    NLuint_big last_row_len = 0;
     for(NLuint i=row_offset; i<CRS->m; ++i) {
 	NLuint_big row_len = CRS->rowptr[i+1] - CRS->rowptr[i];
 	if(Mcuda->nnz+row_len > NL_MAX_SLICE_SIZE) {
@@ -1666,6 +1667,18 @@ static NLCUDASparseMatrix* CreateCUDASlicesFromCRSMatrixSlices(
 	}
 	Mcuda->m++;
 	Mcuda->nnz += row_len;
+        last_row_len = row_len;
+    }
+
+    /*
+     * workaround for a bug in cusparse12 that requires
+     * vectors to be aligned on 16 bytes boundaries.
+     */
+    if(row_offset + Mcuda->m < CRS->m) {
+	if((Mcuda->m & 1) != 0) {
+	   Mcuda->m--;
+	   Mcuda->nnz -= last_row_len;
+       }
     }
 
     /* apply offsets to row pointers and send them to CUDA */
