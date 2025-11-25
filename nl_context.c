@@ -263,7 +263,9 @@ static NLboolean nlSolveIterative(void) {
         if(nlCurrentContext->preconditioner == NL_PRECOND_JACOBI) {
             P = nlCUDAJacobiPreconditionerNewFromCRSMatrix(M);
         }
-        M = nlCUDAMatrixNewFromCRSMatrix(M);
+        M = (nlCUDAGetMatrixFormat() == NL_CUDA_MATRIX_FORMAT_FP32) ?
+	    nlCUDAMatrixNewFromCRSMatrix_float32(M) :
+	    nlCUDAMatrixNewFromCRSMatrix(M) ;
     }
 
     /*

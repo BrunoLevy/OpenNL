@@ -70,6 +70,29 @@ NLboolean nlInitExtension_CUDA(void);
  */
 NLboolean nlExtensionIsInitialized_CUDA(void);
 
+#define NL_CUDA_MATRIX_FORMAT_FP64         0
+#define NL_CUDA_MATRIX_FORMAT_FP32         1
+#define NL_CUDA_MATRIX_FORMAT_FP32_PRECOND 2
+
+/**
+ * \brief Sets the internal matrix format
+ * \param[in] format: one of
+ *   - NL_CUDA_MATRIX_FORMAT_FP64 (always store matrix coeffs as 64-bit doubles)
+ *   - NL_CUDA_MATRIX_FORMAT_FP32 (always store matrix coeffs as 32-bit floats)
+ *   - NL_CUDA_MATRIX_FORMAT_FP32_PRECOND (store preconditionner coeffs as 32-bit
+ *   floats and matrix coeffs as 64-bit doubles)
+ */
+void nlCUDASetMatrixFormat(NLenum format);
+
+/**
+ * \brief Gets the internal matrix format
+ * \return one of
+ *   - NL_CUDA_MATRIX_FORMAT_FP64 (always store matrix coeffs as 64-bit doubles)
+ *   - NL_CUDA_MATRIX_FORMAT_FP32 (always store matrix coeffs as 32-bit floats)
+ *   - NL_CUDA_MATRIX_FORMAT_FP32_PRECOND (store preconditionner coeffs as 32-bit
+ *   floats and matrix coeffs as 64-bit doubles)
+ */
+NLenum nlCUDAGetMatrixFormat();
 
 /****************************************************************************/
 

@@ -123,13 +123,12 @@ NLboolean nlInitExtension(const char* extension) {
 #else
         return NL_FALSE;
 #endif
-    } else if(!strcmp(extension, "CUDA:AMGCL:fp32_precond")) {
-#ifdef NL_WITH_AMGCL
-	nlAMGCLSetPrecondFP32(NL_TRUE);
-        return NL_TRUE;
-#else
-        return NL_FALSE;
-#endif
+    } else if(!strcmp(extension, "CUDA:matrix_format:fp32")) {
+	nlCUDASetMatrixFormat(NL_CUDA_MATRIX_FORMAT_FP32);
+    } else if(!strcmp(extension, "CUDA:matrix_format:fp64")) {
+	nlCUDASetMatrixFormat(NL_CUDA_MATRIX_FORMAT_FP64);
+    } else if(!strcmp(extension, "CUDA:matrix_format:fp32_precond")) {
+	nlCUDASetMatrixFormat(NL_CUDA_MATRIX_FORMAT_FP32_PRECOND);
     }
     return NL_FALSE;
 }

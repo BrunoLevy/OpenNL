@@ -2246,5 +2246,21 @@ NLBlas_t nlCUDABlas(void) {
     return &blas;
 }
 
+/**************************************************************************/
+
+static NLenum nl_CUDA_matrix_format = NL_CUDA_MATRIX_FORMAT_FP64;
+
+void nlCUDASetMatrixFormat(NLenum format) {
+    nl_assert(
+	format == NL_CUDA_MATRIX_FORMAT_FP64 ||
+	format == NL_CUDA_MATRIX_FORMAT_FP32 ||
+	format == NL_CUDA_MATRIX_FORMAT_FP32_PRECOND
+    );
+    nl_CUDA_matrix_format = format;
+}
+
+NLenum nlCUDAGetMatrixFormat() {
+    return nl_CUDA_matrix_format;
+}
 
 /**************************************************************************/

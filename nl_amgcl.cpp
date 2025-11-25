@@ -109,16 +109,10 @@ typedef int rowptr_t;
 namespace amgcl2nl {
 
     /**
-     * \brief if set, AMGCL preconditioner will be stored in fp32 format on the
-     *  GPU (else fp64)
+     * \brief global states that discriminates main matrix and preconditioners.
+     * \details Used by NL_CUDA_MATRIX_FORMAT_FP32_PRECOND
      */
-    NLboolean precond_fp32_store = NL_FALSE;
-
-    /**
-     * \brief if set, all matrices are stored in fp32 format on the GPU
-     *  (else fp64).
-     */
-    NLboolean matrices_fp32_store = NL_FALSE;
+    bool next_matrix_is_preconditioner = false;
 
     typedef double   value_type;
     typedef colind_t col_type;
@@ -395,12 +389,22 @@ namespace amgcl2nl {
 	    CRS.nslices = 0;
 	    CRS.sliceptr = nullptr;
 	    ptr_type nnz = rowptr[CRS.m];
-	    bytes_ = nnz * (sizeof(value_type) + sizeof(col_type)) +
-		(CRS.m+1) * sizeof(ptr_type);
-	    impl_ = matrices_fp32_store ?
-		nlCUDAMatrixNewFromCRSMatrix_float32(NLMatrix(&CRS)) :
-		nlCUDAMatrixNewFromCRSMatrix(NLMatrix(&CRS))         ;
-	    matrices_fp32_store = precond_fp32_store;
+	    NLenum cuda_matrix_format = nlCUDAGetMatrixFormat();
+	    bool fp32_store =
+		(cuda_matrix_format == NL_CUDA_MATRIX_FORMAT_FP32) ||
+		(next_matrix_is_preconditioner && (
+		    cuda_matrix_format == NL_CUDA_MATRIX_FORMAT_FP32_PRECOND
+		));
+	    if(fp32_store) {
+		bytes_ = nnz * (sizeof(float) + sizeof(col_type)) +
+		         (CRS.m+1) * sizeof(ptr_type);
+		impl_ = nlCUDAMatrixNewFromCRSMatrix_float32(NLMatrix(&CRS));
+	    } else {
+		bytes_ = nnz * (sizeof(double) + sizeof(col_type)) +
+		         (CRS.m+1) * sizeof(ptr_type);
+		impl_ = nlCUDAMatrixNewFromCRSMatrix(NLMatrix(&CRS));
+	    }
+	    next_matrix_is_preconditioner = true;
 	}
 
 	/**
@@ -472,10 +476,6 @@ namespace amgcl2nl {
 	mutable amgcl2nl::vector x_on_host_;
     };
 
-}
-
-void nlAMGCLSetPrecondFP32(NLboolean x) {
-    amgcl2nl::precond_fp32_store = x;
 }
 
 namespace amgcl { namespace backend {
@@ -929,8 +929,8 @@ NLboolean nlSolveAMGCL() {
     typedef amgcl::backend::builtin<double, colind_t, rowptr_t> CPU;
     typedef amgcl::backend::nlcuda GPU;
 
-    // First matrix is always created with double-precision storage
-    amgcl2nl::matrices_fp32_store = NL_FALSE;
+    // Used by NL_CUDA_MATRIX_FORMAT_FP32_PRECOND
+    amgcl2nl::next_matrix_is_preconditioner = false;
 
     // Cute, no ? :-)
     return nlExtensionIsInitialized_CUDA() ?
