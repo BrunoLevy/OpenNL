@@ -892,6 +892,7 @@ static void nlCUDACheckImpl(int status, int line) {
 	    CUDA()->cudaGetErrorName(last_error),
 	    CUDA()->cudaGetErrorString(last_error)
 	);
+	abort();
         CUDA()->cudaDeviceReset();
         exit(-1);
     }
@@ -1041,6 +1042,11 @@ static void nlDisplayDeviceInformation(int dev_id, NLboolean detailed) {
 	    dev_id, float64Gflops
 	);
     }
+
+    nl_printf(
+	"OpenNL CUDA[%d]: float64 perf ratio: %d\n",
+	dev_id, double_precision_perf_ratio
+    );
 
     if(detailed) {
 	nl_printf(
@@ -1361,6 +1367,8 @@ typedef struct NLCUDASparseMatrixStruct {
     int devID;        /* CUDA device on which the matrix is stored */
     double* X_buffer; /* used when the matrix did not fit on the main device */
     double* Y_buffer; /* (devID != CUDA()->main_device->devID).    */
+
+    NLboolean float32_store; /* store matrix entries as 32 bit floats */
 } NLCUDASparseMatrix;
 
 
@@ -1657,6 +1665,7 @@ static NLCUDASparseMatrix* CreateCUDASlicesFromCRSMatrixSlices(
     Mcuda->devID = master->devID;
     Mcuda->n = master->n;
     Mcuda->row_offset = row_offset;
+    Mcuda->float32_store = master->float32_store;
     ++master->nb_slices;
 
     NLuint_big last_row_len = 0;
@@ -1712,7 +1721,7 @@ static NLCUDASparseMatrix* CreateCUDASlicesFromCRSMatrixSlices(
             CUSPARSE_INDEX_32I,
             CUSPARSE_INDEX_32I,
             CUSPARSE_INDEX_BASE_ZERO,
-            CUDA_R_64F
+            Mcuda->float32_store ? CUDA_R_32F : CUDA_R_64F
         )
     );
 
@@ -1735,9 +1744,13 @@ static NLCUDASparseMatrix* CreateCUDASlicesFromCRSMatrixSlices(
  * \param[in] with_buffer true if one needs to allocate a buffer for X and Y
  * \return the required GPU RAM to store \p M on the GPU
  */
-static size_t nlCUDAMatrixNeededMem(NLCRSMatrix* M, NLboolean with_buffer) {
+static size_t nlCUDAMatrixNeededMem(
+    NLCRSMatrix* M, NLboolean with_buffer, NLboolean float32_store
+) {
     size_t nnz = (size_t)(M->rowptr[M->m]);
-    size_t CRS_bytes = nnz * (sizeof(int) + sizeof(double)) +
+    size_t CRS_bytes =
+	nnz * sizeof(int) +
+	nnz * (float32_store ? sizeof(float) : sizeof(double)) +
 	(size_t)(M->m+1) * sizeof(int) ;
     size_t buff_bytes = 0;
     if(with_buffer) {
@@ -1750,12 +1763,14 @@ static size_t nlCUDAMatrixNeededMem(NLCRSMatrix* M, NLboolean with_buffer) {
 /**
  * \brief Finds a CUDA device with sufficient available RAM to store a matrix
  * \param[in] M a pointer to a CRS matrix
+ * \param[in] float32_store if set, store coefficients as float32,
+ *   else they are stored as float64
  * \return a CUDA device with sufficient RAM to store \p M, or -1 if there is
  *  not any device with sufficient available RAM.
  */
-static int nlCUDAFindDeviceForMatrix(NLCRSMatrix* M) {
+static int nlCUDAFindDeviceForMatrix(NLCRSMatrix* M, NLboolean float32_store) {
     int dev_id = CUDA()->main_device->devID;
-    size_t required_RAM = nlCUDAMatrixNeededMem(M, NL_FALSE);
+    size_t required_RAM = nlCUDAMatrixNeededMem(M, NL_FALSE, float32_store);
     size_t free_RAM, total_RAM, reserve_RAM;
 
     /* Try main device first */
@@ -1773,7 +1788,7 @@ static int nlCUDAFindDeviceForMatrix(NLCRSMatrix* M) {
      * auxilliary buffers to copy vectors -----.
      *                                         v
      */
-    required_RAM = nlCUDAMatrixNeededMem(M, NL_TRUE);
+    required_RAM = nlCUDAMatrixNeededMem(M, NL_TRUE, float32_store);
 
     for(dev_id=0; dev_id < CUDA()->nb_devices; ++dev_id) {
 	if(dev_id == CUDA()->main_device->devID) {
@@ -1793,18 +1808,21 @@ static int nlCUDAFindDeviceForMatrix(NLCRSMatrix* M) {
     return -1;
 }
 
-NLMatrix nlCUDAMatrixNewFromCRSMatrix(NLMatrix M_in) {
+NLMatrix nlCUDAMatrixNewFromCRSMatrix_impl(
+    NLMatrix M_in, NLboolean float32_store
+) {
     NLCUDASparseMatrix* Mcuda = NL_NEW(NLCUDASparseMatrix);
     NLCRSMatrix* M = (NLCRSMatrix*)(M_in);
     size_t colind_sz, rowptr_sz, val_sz;
     double t0;
     nl_assert(M_in->type == NL_MATRIX_CRS);
-    Mcuda->devID = nlCUDAFindDeviceForMatrix(M);
+    Mcuda->devID = nlCUDAFindDeviceForMatrix(M, float32_store);
     nlCUDACheck(CUDA()->cudaSetDevice(Mcuda->devID));
 
     Mcuda->m = M->m;
     Mcuda->n = M->n;
     Mcuda->nnz = nlCRSMatrixNNZ(M);
+    Mcuda->float32_store = float32_store;
 
     /* If not on main device, need auxilliary vectors to transfer X and Y */
     if(Mcuda->devID != CUDA()->main_device->devID) {
@@ -1821,16 +1839,29 @@ NLMatrix nlCUDAMatrixNewFromCRSMatrix(NLMatrix M_in) {
     Mcuda->mult_func=(NLMultMatrixVectorFunc)nlCRSMatrixCUDAMult;
 
     colind_sz = (size_t)Mcuda->nnz*sizeof(NLuint);
-    val_sz    = (size_t)Mcuda->nnz*sizeof(double);
+    val_sz    = Mcuda->float32_store ?
+	          (size_t)Mcuda->nnz*sizeof(float)  :
+	          (size_t)Mcuda->nnz*sizeof(double) ;
 
     nlCUDACheck(CUDA()->cudaMalloc((void**)&Mcuda->colind,colind_sz));
     nlCUDACheck(CUDA()->cudaMalloc((void**)&Mcuda->val,val_sz));
     nlCUDACheck(CUDA()->cudaMemcpy(
                     Mcuda->colind, M->colind, colind_sz, cudaMemcpyHostToDevice)
                );
-    nlCUDACheck(CUDA()->cudaMemcpy(
-                    Mcuda->val, M->val, val_sz, cudaMemcpyHostToDevice)
-               );
+    if(Mcuda->float32_store) {
+	float* val_float32 = NL_NEW_ARRAY(float, Mcuda->nnz);
+	for(NLuint_big i=0; i<Mcuda->nnz; ++i) {
+	    val_float32[i] = (float)M->val[i];
+	}
+	nlCUDACheck(CUDA()->cudaMemcpy(
+			Mcuda->val, val_float32, val_sz, cudaMemcpyHostToDevice)
+	);
+	NL_DELETE_ARRAY(val_float32);
+    } else {
+	nlCUDACheck(CUDA()->cudaMemcpy(
+			Mcuda->val, M->val, val_sz, cudaMemcpyHostToDevice)
+	);
+    }
 
     /* Need to decompose matrix into slices if arrays are too large */
     if(Mcuda->nnz > NL_MAX_SLICE_SIZE) {
@@ -1843,8 +1874,9 @@ NLMatrix nlCUDAMatrixNewFromCRSMatrix(NLMatrix M_in) {
 
 	if(nlCurrentContext->verbose) {
 	    nl_printf(
-		"OpenNL CUDA[%d]: %dx%d [%d slices] matrix\n",
-		Mcuda->devID, Mcuda->m, Mcuda->n, Mcuda->nb_slices
+		"OpenNL CUDA[%d]: %dx%d matrix [%d slices] %s\n",
+		Mcuda->devID, Mcuda->m, Mcuda->n, Mcuda->nb_slices,
+		(Mcuda->float32_store ? "fp32" : "fp64")
 	    );
 	}
 
@@ -1882,7 +1914,7 @@ NLMatrix nlCUDAMatrixNewFromCRSMatrix(NLMatrix M_in) {
             CUSPARSE_INDEX_32I,
             CUSPARSE_INDEX_32I,
             CUSPARSE_INDEX_BASE_ZERO,
-            CUDA_R_64F
+            Mcuda->float32_store ? CUDA_R_32F : CUDA_R_64F
         )
     );
 
@@ -1897,13 +1929,24 @@ NLMatrix nlCUDAMatrixNewFromCRSMatrix(NLMatrix M_in) {
 
     if(nlCurrentContext->verbose) {
 	nl_printf(
-	    "OpenNL CUDA[%d]: %dx%d matrix [no slice]\n",
-	    Mcuda->devID, Mcuda->m, Mcuda->n
+	    "OpenNL CUDA[%d]: %dx%d matrix [no slice] %s\n",
+	    Mcuda->devID, Mcuda->m, Mcuda->n,
+	    (Mcuda->float32_store ? "fp32" : "fp64")
 	);
     }
 
     return (NLMatrix)Mcuda;
 }
+
+
+NLMatrix nlCUDAMatrixNewFromCRSMatrix(NLMatrix M_in) {
+    return nlCUDAMatrixNewFromCRSMatrix_impl(M_in, NL_FALSE);
+}
+
+NLMatrix nlCUDAMatrixNewFromCRSMatrix_float32(NLMatrix M_in) {
+    return nlCUDAMatrixNewFromCRSMatrix_impl(M_in, NL_TRUE);
+}
+
 
 /**************************************************************************/
 

@@ -83,6 +83,17 @@ NLboolean nlExtensionIsInitialized_CUDA(void);
 NLMatrix nlCUDAMatrixNewFromCRSMatrix(NLMatrix M);
 
 /**
+ * \brief Creates a CUDA on-GPU matrix from an OpenNL CRS matrix.
+ * \details With this version, matrix coefficients are stored as
+ *  32 bit floats if the version of cusparse supports mixed precision.
+ *  Calling nlMultMatrixVector() with the created matrix only works
+ *  with vectors that reside on the GPU.
+ * \param[in] M the OpenNL CRS matrix to be copied.
+ * \return a handle to the CUDA matrix.
+ */
+NLMatrix nlCUDAMatrixNewFromCRSMatrix_float32(NLMatrix M);
+
+/**
  * \brief Creates a CUDA on-GPU Jacobi preconditioner from an OpenNL CRS matrix.
  * \details Calling nlMultMatrixVector() with the created matrix only works
  *  with vectors that reside on the GPU.

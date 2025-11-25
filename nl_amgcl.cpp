@@ -101,11 +101,25 @@ typedef int rowptr_t;
 /**************** AMGCL backend using OpenNL CUDA interface **************/
 /*************************************************************************/
 
+
 /**
  * \brief Adapters around OpenNL CUDA interface user by AMGCL backend
  */
 
 namespace amgcl2nl {
+
+    /**
+     * \brief if set, AMGCL preconditioner will be stored in fp32 format on the
+     *  GPU (else fp64)
+     */
+    NLboolean precond_fp32_store = NL_FALSE;
+
+    /**
+     * \brief if set, all matrices are stored in fp32 format on the GPU
+     *  (else fp64).
+     */
+    NLboolean matrices_fp32_store = NL_FALSE;
+
     typedef double   value_type;
     typedef colind_t col_type;
     typedef rowptr_t ptr_type;
@@ -383,7 +397,10 @@ namespace amgcl2nl {
 	    ptr_type nnz = rowptr[CRS.m];
 	    bytes_ = nnz * (sizeof(value_type) + sizeof(col_type)) +
 		(CRS.m+1) * sizeof(ptr_type);
-	    impl_ = nlCUDAMatrixNewFromCRSMatrix(NLMatrix(&CRS));
+	    impl_ = matrices_fp32_store ?
+		nlCUDAMatrixNewFromCRSMatrix_float32(NLMatrix(&CRS)) :
+		nlCUDAMatrixNewFromCRSMatrix(NLMatrix(&CRS))         ;
+	    matrices_fp32_store = precond_fp32_store;
 	}
 
 	/**
@@ -454,6 +471,11 @@ namespace amgcl2nl {
 	mutable amgcl2nl::vector rhs_on_host_;
 	mutable amgcl2nl::vector x_on_host_;
     };
+
+}
+
+void nlAMGCLSetPrecondFP32(NLboolean x) {
+    amgcl2nl::precond_fp32_store = x;
 }
 
 namespace amgcl { namespace backend {
@@ -907,6 +929,9 @@ NLboolean nlSolveAMGCL() {
     typedef amgcl::backend::builtin<double, colind_t, rowptr_t> CPU;
     typedef amgcl::backend::nlcuda GPU;
 
+    // First matrix is always created with double-precision storage
+    amgcl2nl::matrices_fp32_store = NL_FALSE;
+
     // Cute, no ? :-)
     return nlExtensionIsInitialized_CUDA() ?
 	nlSolveAMGCL_generic<GPU>() :
@@ -926,6 +951,11 @@ NLboolean nlSolveAMGCL() {
 NLboolean nlSolveAMGCL() {
     GEO::Logger::out("AMGCL") << "Not supported" << std::endl;
     return NL_FALSE;
+}
+
+void nlAMGCLSetPrecondFP32(NLboolean x) {
+    NL_ARGUSED(x);
+    GEO::Logger::out("AMGCL") << "Not supported" << std::endl;
 }
 
 #endif

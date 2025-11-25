@@ -47,6 +47,7 @@
 #include "nl_arpack.h"
 #include "nl_mkl.h"
 #include "nl_cuda.h"
+#include "nl_amgcl.h"
 
 /*****************************************************************************/
 
@@ -118,6 +119,13 @@ NLboolean nlInitExtension(const char* extension) {
         return nlInitExtension_CUDA();
     } else if(!strcmp(extension, "AMGCL")) {
 #ifdef NL_WITH_AMGCL
+        return NL_TRUE;
+#else
+        return NL_FALSE;
+#endif
+    } else if(!strcmp(extension, "CUDA:AMGCL:fp32_precond")) {
+#ifdef NL_WITH_AMGCL
+	nlAMGCLSetPrecondFP32(NL_TRUE);
         return NL_TRUE;
 #else
         return NL_FALSE;

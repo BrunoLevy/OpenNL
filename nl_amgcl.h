@@ -48,4 +48,11 @@
  */
 NLAPI NLboolean NLAPIENTRY nlSolveAMGCL(void);
 
+/**
+ * \brief Specifies whether the preconditioner constructed by AMGCL should
+ *  be stored in FP32 format rather than FP64 format to save GPU RAM.
+ * \param[in] x NL_TRUE if FP32 should be used, NL_FALSE if FP64 should be used.
+ */
+NLAPI void NLAPIENTRY nlAMGCLSetPrecondFP32(NLboolean x);
+
 #endif
