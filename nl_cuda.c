@@ -1691,6 +1691,8 @@ static NLCUDASparseMatrix* CreateCUDASlicesFromCRSMatrixSlices(
     }
 
     /* apply offsets to row pointers and send them to CUDA */
+    /* CRS->rowptr is 64 bits in GARGANTUA mode            */
+    /* rowptr is 32 bits (another benefit of slicing)      */
     rowptr = NL_NEW_ARRAY(NLuint, Mcuda->m+1);
     for(NLuint i=0; i<=Mcuda->m; ++i) {
 	rowptr[i] = (NLuint)(
