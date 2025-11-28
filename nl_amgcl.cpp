@@ -462,13 +462,17 @@ namespace amgcl2nl {
 	): Base(*A),
 	   rhs_on_host_(amgcl::backend::rows(*A), NL_HOST_MEMORY),
 	   x_on_host_(amgcl::backend::rows(*A), NL_HOST_MEMORY) {
+	    if(nlCurrentContext->verbose) {
+		nl_printf(
+		    "OpenNL AMGCL CPU: %dx%d skyline_lu\n",
+		    amgcl::backend::rows(*A), amgcl::backend::cols(*A)
+		);
+	    }
 	}
 
 	void operator()(const vector &rhs_on_device, vector &x_on_device) const {
 	    rhs_on_host_.copy_from(rhs_on_device);
-	    static_cast<const Base*>(this)->operator()(
-		rhs_on_host_, x_on_host_
-	    );
+	    Base::operator()(rhs_on_host_, x_on_host_);
 	    x_on_device.copy_from(x_on_host_);
 	}
 
