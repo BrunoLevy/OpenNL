@@ -103,7 +103,7 @@ NLenum nlCUDAGetMatrixFormat();
  * \param[in] M the OpenNL CRS matrix to be copied.
  * \return a handle to the CUDA matrix.
  */
-NLMatrix nlCUDAMatrixNewFromCRSMatrix(NLMatrix M);
+NLAPI NLMatrix NLAPIENTRY nlCUDAMatrixNewFromCRSMatrix(NLMatrix M);
 
 /**
  * \brief Creates a CUDA on-GPU matrix from an OpenNL CRS matrix.
@@ -114,7 +114,7 @@ NLMatrix nlCUDAMatrixNewFromCRSMatrix(NLMatrix M);
  * \param[in] M the OpenNL CRS matrix to be copied.
  * \return a handle to the CUDA matrix.
  */
-NLMatrix nlCUDAMatrixNewFromCRSMatrix_float32(NLMatrix M);
+NLAPI NLMatrix NLAPIENTRY nlCUDAMatrixNewFromCRSMatrix_float32(NLMatrix M);
 
 /**
  * \brief Creates a CUDA on-GPU Jacobi preconditioner from an OpenNL CRS matrix.
@@ -123,7 +123,7 @@ NLMatrix nlCUDAMatrixNewFromCRSMatrix_float32(NLMatrix M);
  * \param[in] M the OpenNL CRS matrix.
  * \return a handle to the created CUDA matrix.
  */
-NLMatrix nlCUDAJacobiPreconditionerNewFromCRSMatrix(NLMatrix M);
+NLAPI NLMatrix NLAPIENTRY nlCUDAJacobiPreconditionerNewFromCRSMatrix(NLMatrix M);
 
 /**
  * \brief Computes a sparse matrix vector product
@@ -135,7 +135,7 @@ NLMatrix nlCUDAJacobiPreconditionerNewFromCRSMatrix(NLMatrix M);
  * \param[in,out] y device pointer
  * \param[in] alpha , beta two scalars
  */
-void nlCUDAMatrixSpMV(
+NLAPI void NLAPIENTRY nlCUDAMatrixSpMV(
     NLMatrix M, const double* x, double* y, double alpha, double beta
 );
 
@@ -144,7 +144,7 @@ void nlCUDAMatrixSpMV(
  *  BLAS operation on the GPU using CUDA.
  * \return a pointer to the BLAS abstraction layer.
  */
-NLBlas_t nlCUDABlas(void);
+NLAPI NLBlas_t NLAPIENTRY nlCUDABlas(void);
 
 /****************************************************************************/
 

@@ -892,7 +892,6 @@ static void nlCUDACheckImpl(int status, int line) {
 	    CUDA()->cudaGetErrorName(last_error),
 	    CUDA()->cudaGetErrorString(last_error)
 	);
-	abort();
         CUDA()->cudaDeviceReset();
         exit(-1);
     }
@@ -1805,8 +1804,8 @@ static int nlCUDAFindDeviceForMatrix(NLCRSMatrix* M, NLboolean float32_store) {
     }
 
     /*Oohh nooo, our matrix does not fit anywhere ! */
+    nl_printf("Did not find a device with enough space for matrix\n");
     nlCUDACheck(CUDA()->cudaSetDevice(CUDA()->main_device->devID));
-    nl_printf("Did not find a device with enough space for matrix");
     return -1;
 }
 
@@ -1819,6 +1818,10 @@ NLMatrix nlCUDAMatrixNewFromCRSMatrix_impl(
     double t0;
     nl_assert(M_in->type == NL_MATRIX_CRS);
     Mcuda->devID = nlCUDAFindDeviceForMatrix(M, float32_store);
+    if(Mcuda->devID == -1) {
+	nl_printf("OpenNL CUDA: Fatal error (out of GPU memory)\n");
+        exit(-1);
+    }
     nlCUDACheck(CUDA()->cudaSetDevice(Mcuda->devID));
 
     Mcuda->m = M->m;

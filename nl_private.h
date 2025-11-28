@@ -279,8 +279,8 @@ typedef void* NLdll;
 /**
  * \brief Dynamically links a DLL/shared object/dylib to the current process.
  * \param[in] filename the file name fo the DLL/shared object/dylib.
- * \param[in] flags an or-combination of NL_LINK_NOW, NL_LINK_LAZY, NL_LINK_GLOBAL,
- *  NL_LINK_QUIET.
+ * \param[in] flags an or-combination of NL_LINK_NOW, NL_LINK_LAZY,
+ *  NL_LINK_GLOBAL, NL_LINK_QUIET.
  * \return a handle to the DLL/shared object/dylib or NULL if it could not
  *  be found.
  */

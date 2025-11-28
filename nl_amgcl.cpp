@@ -229,7 +229,7 @@ namespace amgcl2nl {
 	 */
 	std::shared_ptr<vector> temp() const {
 	    if(temp_ == nullptr) {
-		temp_ = std::shared_ptr<vector>(new vector(n_));
+		temp_ = std::shared_ptr<vector>(new vector(n_, mem_type_));
 	    }
 	    return temp_;
 	}
