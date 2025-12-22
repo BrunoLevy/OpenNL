@@ -17,6 +17,8 @@ extern "C" {
 
 #ifdef NL_WITH_AMGCL
 
+// #define AMGCL_PROFILING // uncomment to display amgcl profiling stats
+
 /*************************************************************************/
 
 // switch off some warnings else it complains too much when
@@ -73,11 +75,23 @@ extern "C" {
 
 # include <amgcl/preconditioner/dummy.hpp>
 
-
 #ifdef AMGCL_PROFILING
 #include <amgcl/profiler.hpp>
 namespace amgcl {
     profiler<> prof;
+    void reset_profiling() {
+	prof.reset();
+    }
+    void show_profiling() {
+	std::cerr << prof << std::endl;
+    }
+}
+#else
+namespace amgcl {
+    void reset_profiling() {
+    }
+    void show_profiling() {
+    }
 }
 #endif
 
@@ -585,7 +599,7 @@ namespace amgcl { namespace backend {
 	 * \param[in] param a const reference to the parameters, unused in
 	 *  this backend
 	 * \return a shared_ptr to a amgcl2nl::cuda_skyline_lu, a direct
-	 *  direct solver that can solve linear systems with vectors
+	 *  solver that can solve linear systems with vectors
 	 *  stored in this backend, in GPU memory (copies data back and
 	 *  forth).
 	 */
@@ -877,6 +891,8 @@ template <class Backend> NLboolean nlSolveAMGCL_generic() {
     prm.solver.verbose = int(ctxt->verbose);
 #endif
 
+    amgcl::reset_profiling();
+
     // using the zero-copy interface of AMGCL
     auto M_amgcl = amgcl::adapter::zero_copy_direct(
         size_t(n), (rowptr_t*)M->rowptr, (colind_t *)M->colind, M->val
@@ -895,6 +911,7 @@ template <class Backend> NLboolean nlSolveAMGCL_generic() {
 	if(nlExtensionIsInitialized_CUDA()) {
 	    nlBlasShowStats(nlCUDABlas());
 	}
+	amgcl::show_profiling();
     }
 
     delete Wbuild;
@@ -915,14 +932,18 @@ template <class Backend> NLboolean nlSolveAMGCL_generic() {
             nl_assert(ctxt->variable_buffer[k].stride == sizeof(double));
         }
 
+
+	amgcl::reset_profiling();
 	std::tie(ctxt->used_iterations, ctxt->error) =
 	    solve_linear_system_impl<Backend>::apply(solver,n,b,x);
+	amgcl::show_profiling();
 
         b += n;
         x += n;
     }
 
     nlCurrentContext->flops += nlCUDABlas()->flops;
+
 
     return NL_TRUE;
 }
