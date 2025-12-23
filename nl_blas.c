@@ -971,9 +971,6 @@ L40:
 #undef Y
 #undef A
 
-
-
-
 #else
 
 extern void NL_FORTRAN_WRAP(daxpy)(

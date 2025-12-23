@@ -346,6 +346,17 @@ typedef cublasStatus_t (*FUNPTR_cublasDgemv)(
     int incy
 );
 
+typedef cublasStatus_t (*FUNPTR_cublasDgemm)(
+    cublasHandle_t handle,
+    cublasOperation_t transa, cublasOperation_t transb,
+    int m, int n, int k,
+    const double *alpha,
+    const double *A, int lda,
+    const double *B, int ldb,
+    const double *beta,
+    double *C, int ldc
+);
+
 typedef cublasStatus_t (*FUNPTR_cublasDtpsv)(
     cublasHandle_t handle, cublasFillMode_t uplo,
     cublasOperation_t trans, cublasDiagType_t diag,
@@ -601,6 +612,7 @@ typedef struct {
     FUNPTR_cublasDnrm2 cublasDnrm2;
     FUNPTR_cublasDdgmm cublasDdgmm;
     FUNPTR_cublasDgemv cublasDgemv;
+    FUNPTR_cublasDgemm cublasDgemm;
     FUNPTR_cublasDtpsv cublasDtpsv;
 
     NLdll DLL_cusparse;
@@ -673,6 +685,9 @@ NLboolean nlExtensionIsInitialized_CUDA(void) {
         CUDA()->cublasDscal == NULL ||
         CUDA()->cublasDnrm2 == NULL ||
         CUDA()->cublasDdgmm == NULL ||
+        CUDA()->cublasDgemv == NULL ||
+        CUDA()->cublasDgemm == NULL ||
+
 
         CUDA()->DLL_cusparse == NULL ||
         CUDA()->cusparseCreate == NULL ||
@@ -1220,6 +1235,7 @@ NLboolean nlInitExtension_CUDA(void) {
     find_cublas_func(cublasDscal);
     find_cublas_func(cublasDnrm2);
     find_cublas_func(cublasDgemv);
+    find_cublas_func(cublasDgemm);
     find_cublas_func(cublasDtpsv);
     find_cublas_func_v1(cublasDdgmm);
 

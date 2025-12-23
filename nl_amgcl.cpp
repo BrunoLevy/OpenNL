@@ -808,7 +808,7 @@ template <> struct solve_linear_system_impl<
 };
 
 /**
- * \brief Wrapper around solver that copy rhs and x to/from GPU memory.
+ * \brief Wrapper around solver that copies rhs and x to/from GPU memory.
  */
 template <> struct solve_linear_system_impl<amgcl::backend::nlcuda> {
     template <class Solver> static std::tuple<size_t, double> apply(
