@@ -193,6 +193,7 @@ struct cudaDeviceProp {
 };
 
 typedef int cudaError_t;
+typedef void* cudaStream_t;
 
 typedef cudaError_t (*FUNPTR_cudaDriverGetVersion)(int* version);
 typedef cudaError_t (*FUNPTR_cudaRuntimeGetVersion)(int* version);
@@ -222,7 +223,10 @@ typedef cudaError_t (*FUNPTR_cudaFreeHost)(void* devPtr);
 typedef cudaError_t (*FUNPTR_cudaMemcpy)(
     void *dst, const void *src, size_t count, enum cudaMemcpyKind kind
 );
-typedef FUNPTR_cudaMemcpy FUNPTR_cudaMemcpyAsync;
+typedef cudaError_t (*FUNPTR_cudaMemcpyAsync)(
+    void *dst, const void *src, size_t count, enum cudaMemcpyKind kind,
+    cudaStream_t stream
+);
 typedef cudaError_t (*FUNPTR_cudaMemcpyPeer)(
     void *dst, int dst_dev, const void *src, int src_dev, size_t count
 );
@@ -636,6 +640,8 @@ typedef struct {
     int nb_devices;
     NLCUDADeviceContext* device;
     NLCUDADeviceContext* main_device;
+
+    NLboolean initialized;
 } NLCUDAContext;
 
 /**
@@ -653,56 +659,7 @@ static NLCUDAContext* CUDA(void) {
 }
 
 NLboolean nlExtensionIsInitialized_CUDA(void) {
-    if(
-        CUDA()->DLL_cudart == NULL ||
-        CUDA()->cudaDriverGetVersion == NULL ||
-        CUDA()->cudaRuntimeGetVersion == NULL ||
-        CUDA()->cudaGetDeviceCount == NULL ||
-        CUDA()->cudaGetDeviceProperties == NULL ||
-        CUDA()->cudaDeviceGetAttribute == NULL ||
-        CUDA()->cudaSetDevice == NULL ||
-        CUDA()->cudaGetDevice == NULL ||
-        CUDA()->cudaDeviceReset == NULL ||
-	CUDA()->cudaDeviceCanAccessPeer == NULL ||
-	CUDA()->cudaDeviceEnablePeerAccess == NULL ||
-	CUDA()->cudaDeviceDisablePeerAccess == NULL ||
-	CUDA()->cudaDeviceSynchronize == NULL ||
-        CUDA()->cudaMalloc == NULL ||
-        CUDA()->cudaFree == NULL ||
-        CUDA()->cudaMallocHost == NULL ||
-        CUDA()->cudaFreeHost == NULL ||
-        CUDA()->cudaMemcpy == NULL ||
-        CUDA()->cudaMemcpyAsync == NULL ||
-        CUDA()->cudaMemcpyPeer == NULL ||
-	CUDA()->cudaMemset == NULL ||
-	CUDA()->cudaMemGetInfo == NULL ||
-	CUDA()->cudaGetLastError == NULL ||
-	CUDA()->cudaPeekAtLastError == NULL ||
-	CUDA()->cudaGetErrorString == NULL ||
-	CUDA()->cudaGetErrorName == NULL ||
-
-        CUDA()->DLL_cublas == NULL ||
-        CUDA()->cublasCreate == NULL ||
-        CUDA()->cublasDestroy == NULL ||
-        CUDA()->cublasGetVersion == NULL ||
-        CUDA()->cublasDdot == NULL ||
-        CUDA()->cublasDcopy == NULL ||
-        CUDA()->cublasDaxpy == NULL ||
-        CUDA()->cublasDscal == NULL ||
-        CUDA()->cublasDnrm2 == NULL ||
-        CUDA()->cublasDdgmm == NULL ||
-        CUDA()->cublasDgemv == NULL ||
-        CUDA()->cublasDgemm == NULL ||
-
-
-        CUDA()->DLL_cusparse == NULL ||
-        CUDA()->cusparseCreate == NULL ||
-        CUDA()->cusparseDestroy == NULL ||
-        CUDA()->cusparseGetVersion == NULL
-    ) {
-        return NL_FALSE;
-    }
-    return NL_TRUE;
+    return CUDA()->initialized;
 }
 
 static void nlTerminateExtension_CUDA(void) {
@@ -1263,10 +1220,6 @@ NLboolean nlInitExtension_CUDA(void) {
     find_cusparse_func_quiet(cusparseSpMV_preprocess);
     find_cusparse_func_quiet(cusparseCreateConstCsr);
 
-    if(!nlExtensionIsInitialized_CUDA()) {
-        return NL_FALSE;
-    }
-
     nlCUDACheck(CUDA()->cudaGetDeviceCount(&CUDA()->nb_devices));
     CUDA()->device = malloc(
 	sizeof(NLCUDADeviceContext)*(size_t)(CUDA()->nb_devices)
@@ -1335,6 +1288,8 @@ NLboolean nlInitExtension_CUDA(void) {
 	    " (can do without it)\n"
 	);
     }
+
+    CUDA()->initialized = NL_TRUE;
 
     atexit(nlTerminateExtension_CUDA);
     return NL_TRUE;
