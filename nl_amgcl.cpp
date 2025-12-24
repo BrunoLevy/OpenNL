@@ -17,7 +17,7 @@ extern "C" {
 
 #ifdef NL_WITH_AMGCL
 
-// #define AMGCL_PROFILING // uncomment to display amgcl profiling stats
+#define AMGCL_PROFILING // uncomment to display amgcl profiling stats
 
 /*************************************************************************/
 

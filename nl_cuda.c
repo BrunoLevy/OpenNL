@@ -213,6 +213,7 @@ typedef cudaError_t (*FUNPTR_cudaDeviceDisablePeerAccess)(int peerDevice);
 typedef cudaError_t (*FUNPTR_cudaDeviceEnablePeerAccess)(
     int  peerDevice, unsigned int  flags
 );
+typedef cudaError_t (*FUNPTR_cudaDeviceSynchronize)();
 
 typedef cudaError_t (*FUNPTR_cudaMalloc)(void **devPtr, size_t size);
 typedef cudaError_t (*FUNPTR_cudaFree)(void* devPtr);
@@ -221,6 +222,7 @@ typedef cudaError_t (*FUNPTR_cudaFreeHost)(void* devPtr);
 typedef cudaError_t (*FUNPTR_cudaMemcpy)(
     void *dst, const void *src, size_t count, enum cudaMemcpyKind kind
 );
+typedef FUNPTR_cudaMemcpy FUNPTR_cudaMemcpyAsync;
 typedef cudaError_t (*FUNPTR_cudaMemcpyPeer)(
     void *dst, int dst_dev, const void *src, int src_dev, size_t count
 );
@@ -588,11 +590,13 @@ typedef struct {
     FUNPTR_cudaDeviceCanAccessPeer cudaDeviceCanAccessPeer;
     FUNPTR_cudaDeviceEnablePeerAccess cudaDeviceEnablePeerAccess;
     FUNPTR_cudaDeviceDisablePeerAccess cudaDeviceDisablePeerAccess;
+    FUNPTR_cudaDeviceSynchronize cudaDeviceSynchronize;
     FUNPTR_cudaMalloc cudaMalloc;
     FUNPTR_cudaFree cudaFree;
     FUNPTR_cudaMalloc cudaMallocHost;
     FUNPTR_cudaFree cudaFreeHost;
     FUNPTR_cudaMemcpy cudaMemcpy;
+    FUNPTR_cudaMemcpyAsync cudaMemcpyAsync;
     FUNPTR_cudaMemcpyPeer cudaMemcpyPeer;
     FUNPTR_cudaMemset cudaMemset;
     FUNPTR_cudaMemGetInfo cudaMemGetInfo;
@@ -662,11 +666,13 @@ NLboolean nlExtensionIsInitialized_CUDA(void) {
 	CUDA()->cudaDeviceCanAccessPeer == NULL ||
 	CUDA()->cudaDeviceEnablePeerAccess == NULL ||
 	CUDA()->cudaDeviceDisablePeerAccess == NULL ||
+	CUDA()->cudaDeviceSynchronize == NULL ||
         CUDA()->cudaMalloc == NULL ||
         CUDA()->cudaFree == NULL ||
         CUDA()->cudaMallocHost == NULL ||
         CUDA()->cudaFreeHost == NULL ||
         CUDA()->cudaMemcpy == NULL ||
+        CUDA()->cudaMemcpyAsync == NULL ||
         CUDA()->cudaMemcpyPeer == NULL ||
 	CUDA()->cudaMemset == NULL ||
 	CUDA()->cudaMemGetInfo == NULL ||
@@ -1177,11 +1183,13 @@ NLboolean nlInitExtension_CUDA(void) {
     find_cuda_func(cudaDeviceCanAccessPeer);
     find_cuda_func(cudaDeviceEnablePeerAccess);
     find_cuda_func(cudaDeviceDisablePeerAccess);
+    find_cuda_func(cudaDeviceSynchronize);
     find_cuda_func(cudaMalloc);
     find_cuda_func(cudaFree);
     find_cuda_func(cudaMallocHost);
     find_cuda_func(cudaFreeHost);
     find_cuda_func(cudaMemcpy);
+    find_cuda_func(cudaMemcpyAsync);
     find_cuda_func(cudaMemcpyPeer);
     find_cuda_func(cudaMemset);
     find_cuda_func(cudaMemGetInfo);
