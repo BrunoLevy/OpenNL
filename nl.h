@@ -765,8 +765,9 @@ extern "C" {
 
 /**
  * \brief Initializes OpenNL using command line arguments.
- * \details Command line arguments of the form nl:<extension>=true|false are parsed
- *  and taken into account. Calling this function is not mandatory.
+ * \details Command line arguments of the form
+ *  nl:<extension>=true|false are parsed and taken into account.
+ *  Calling this function is not mandatory.
  */
     NLAPI void NLAPIENTRY nlInitialize(int argc, char** argv);
 

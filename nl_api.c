@@ -123,12 +123,6 @@ NLboolean nlInitExtension(const char* extension) {
 #else
         return NL_FALSE;
 #endif
-    } else if(!strcmp(extension, "CUDA:matrix_format:fp32")) {
-	nlCUDASetMatrixFormat(NL_CUDA_MATRIX_FORMAT_FP32);
-    } else if(!strcmp(extension, "CUDA:matrix_format:fp64")) {
-	nlCUDASetMatrixFormat(NL_CUDA_MATRIX_FORMAT_FP64);
-    } else if(!strcmp(extension, "CUDA:matrix_format:fp32_precond")) {
-	nlCUDASetMatrixFormat(NL_CUDA_MATRIX_FORMAT_FP32_PRECOND);
     }
     return NL_FALSE;
 }
@@ -163,26 +157,65 @@ NLboolean nlExtensionIsInitialized(const char* extension) {
 void nlInitialize(int argc, char** argv) {
     int i=0;
     char* ptr=NULL;
-    char extension[255];
+    char variable[255];
+    char value[255];
+
     /* Find all the arguments with the form:
-     * nl:<extension>=true|false
+     * nl:<extension>:<variable>=<value>
      * and try to activate the corresponding extensions.
      */
     for(i=1; i<argc; ++i) {
-        ptr = strstr(argv[i],"=true");
-        if(!strncmp(argv[i], "nl:", 3) &&
-           (strlen(argv[i]) > 3) &&
-           (ptr != NULL)) {
-            strncpy(extension, argv[i]+3, (size_t)(ptr-argv[i]-3));
-            extension[(size_t)(ptr-argv[i]-3)] = '\0';
-            if(nlInitExtension(extension)) {
-                nl_fprintf(stdout,"OpenNL %s: initialized\n", extension);
+	/* to avoid buffer overflow */
+	if(strlen(argv[i]) >= 255) {
+	    continue;
+	}
+	/* skip argument if it does not start with nl: */
+	if(strncmp(argv[i], "nl:", 3)) {
+	    continue;
+	}
+	/* skip argument if no "=" in it */
+	ptr = strchr(argv[i], '=');
+	if(ptr == NULL) {
+	    continue;
+	}
+
+	size_t variable_sz = (size_t)(ptr-argv[i]-3);
+	size_t value_sz = strlen(argv[i]) - (ptr - argv[i]) - 1;
+
+	strncpy(variable, argv[i]+3, variable_sz);
+	variable[variable_sz] = '\0';
+	strncpy(value, ptr+1, value_sz);
+	value[value_sz] = '\0';
+
+	if(!strcmp(value,"true")) {
+            if(nlInitExtension(variable)) {
+                nl_fprintf(stdout,"OpenNL %s: initialized\n", variable);
             } else {
                 nl_fprintf(
-                    stderr,"OpenNL %s: could not initialize\n", extension
+                    stderr,"OpenNL %s: could not initialize\n", variable
                 );
             }
-        }
+	} else {
+	    if(!strcmp(variable, "CUDA:matrix_format")) {
+		if(!strcmp(value, "fp64")) {
+		    nlCUDASetMatrixFormat(NL_CUDA_MATRIX_FORMAT_FP64);
+		} else if(!strcmp(value, "fp32")) {
+		    nlCUDASetMatrixFormat(NL_CUDA_MATRIX_FORMAT_FP32);
+		} else if(!strcmp(value, "fp32_precond")) {
+		    nlCUDASetMatrixFormat(NL_CUDA_MATRIX_FORMAT_FP32_PRECOND);
+		} else {
+		    nl_fprintf(
+			stderr,
+			"OpenNL %s: unknown value for nl:CUDA:matrix_format\n",
+			value
+		    );
+		}
+	    } else {
+                nl_fprintf(
+                    stderr,"OpenNL %s: unknown variable\n", variable
+                );
+	    }
+	}
     }
 }
 
